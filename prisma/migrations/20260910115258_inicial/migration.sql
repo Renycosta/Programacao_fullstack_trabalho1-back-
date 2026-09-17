@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "usuarios" ALTER COLUMN "Data_nasc" DROP DEFAULT,
+ALTER COLUMN "Data_nasc" SET DATA TYPE DATE;

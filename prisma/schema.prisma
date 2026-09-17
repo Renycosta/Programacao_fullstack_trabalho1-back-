@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Usuario {
+  IdUsuario     Int         @id @default(autoincrement())
+  Nome          String      @db.VarChar(45)
+  Telefone      String      @db.VarChar(45)
+  Email         String      @unique @db.VarChar(45)
+  CPF           String      @db.VarChar(11)
+  Data_nasc     DateTime    @db.Date
+  Senha         String      @db.VarChar(100)
+  Enderecos     Endereco[]
+  Produtos      Produto[]
+  Compras       Compra[]
+  @@map("usuarios")
+}
+
+model Endereco{
+  IdEndereco     Int         @id @default(autoincrement())
+  CEP            String      @db.VarChar(9)
+  Estado         String      @db.VarChar(45)
+  Cidade         String      @db.VarChar(45)
+  Bairro         String      @db.VarChar(45)
+  Rua            String      @db.VarChar(45)
+  Numero         Int         @db.SmallInt
+  Complemento    String?     @db.VarChar(100)
+  Usuario        Usuario     @relation(fields: [Usuario_Id], references: [IdUsuario])
+  Usuario_Id     Int
+  @@map("enderecos")
+}
+
+model Produto{
+  IdProduto      Int         @id @default(autoincrement())
+  Nome           String      @db.VarChar(45)
+  Autor          String      @db.VarChar(45)
+  Ano_public     Int         @db.SmallInt
+  Peso           String      @db.VarChar(10)
+  Descricao      String      @db.VarChar(250)
+  Img            String      @db.VarChar(250)
+  Valor          Decimal     @db.Decimal(10, 2)
+  Comentario_IA  String      @db.VarChar(250)
+  Data_inclusao  DateTime    @default(now())
+  Data_atualiza  DateTime    @updatedAt()
+  Usuario        Usuario     @relation(fields: [Usuario_Id], references: [IdUsuario])
+  Usuario_Id     Int
+  Categoria      Categoria   @relation(fields: [Categoria_Id], references: [IdCategoria])
+  Categoria_Id   Int
+  PdC            Produtos_da_compra[]
+  @@map("produtos")
+}
+
+model Compra{
+  IdCompra       Int         @id @default(autoincrement())
+  Data_venda     DateTime    @default(now())
+  Valor_total    Decimal     @db.Decimal(10, 2)
+  Usuario        Usuario     @relation(fields: [Usuario_Id], references: [IdUsuario])
+  Usuario_Id     Int
+  PdC            Produtos_da_compra[]
+  @@map("compras")
+}
+
+model Produtos_da_compra{
+  Produto        Produto     @relation(fields: [Produto_Id], references: [IdProduto])
+  Produto_Id     Int      
+  Compra         Compra      @relation(fields: [Compra_Id], references: [IdCompra])
+  Compra_Id      Int         
+  @@id([Produto_Id, Compra_Id])
+  @@map("produtos_das_compras")
+}
+
+model Categoria{
+  IdCategoria     Int         @id @default(autoincrement())
+  Descricao       String      @db.VarChar(250)
+  Produtos        Produto[]
+  Admin           Admin       @relation(fields: [Admin_Id], references: [IdAdmin])
+  Admin_Id        Int
+  @@map("categorias")
+}
+
+model Admin{
+  IdAdmin          Int         @id @default(autoincrement())
+  Nome             String      @db.VarChar(45)
+  Telefone         String      @db.VarChar(45)
+  Email            String      @db.VarChar(45)
+  Senha            String      @db.VarChar(100)
+  Categorias       Categoria[]
+  @@map("admins")
+}
