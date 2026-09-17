@@ -37,8 +37,8 @@ model Endereco{
 
 model Produto{
   IdProduto      Int         @id @default(autoincrement())
-  Nome           String      @db.VarChar(45)
-  Autor          String      @db.VarChar(45)
+  Nome           String      @db.VarChar(150)
+  Autor          String      @db.VarChar(150)
   Ano_public     Int         @db.SmallInt
   Peso           String      @db.VarChar(10)
   Descricao      String      @db.VarChar(250)

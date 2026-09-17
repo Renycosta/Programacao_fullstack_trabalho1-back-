@@ -1,5 +1,7 @@
 import express from 'express'
 import cors from 'cors'
+import swaggerUi from "swagger-ui-express";
+import swaggerDocument from "../swagger-output.json";
 
 import routesAdmins from './routes/admins'
 import routesCategorias from './routes/categorias'
@@ -26,6 +28,9 @@ app.use("/admins/login", routesLoginAdmins)
 app.use("/produtos_das_compras", routesProdutos_das_compras)
 app.use("/produtos", routesProdutos)
 app.use("/usuarios", routesUsuarios)
+
+// Documentação Swagger
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument))
 
 app.get('/', (req, res) => {
   res.send('API: Livraria gato preto')
