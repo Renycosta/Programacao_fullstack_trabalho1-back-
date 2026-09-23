@@ -29,7 +29,9 @@ function validaSenha(senha: string) {
   const mensa: string[] = []
 
   if (senha.length < 8) {
-    mensa.push("Erro... senha deve possuir, no mínimo, 8 caracteres")
+    mensa.push(
+      "Erro... senha deve possuir, no mínimo, 8 caracteres"
+    )
   }
 
   let pequenas = 0
@@ -40,55 +42,80 @@ function validaSenha(senha: string) {
   for (const letra of senha) {
     if (/[a-z]/.test(letra)) {
       pequenas++
-    }
-    else if (/[A-Z]/.test(letra)) {
+    } else if (/[A-Z]/.test(letra)) {
       grandes++
-    }
-    else if (/[0-9]/.test(letra)) {
+    } else if (/[0-9]/.test(letra)) {
       numeros++
-    }
-    else {
+    } else {
       simbolos++
     }
   }
 
   if (pequenas == 0) {
-    mensa.push("Erro... senha deve possuir letra(s) minúscula(s)")
+    mensa.push(
+      "Erro... senha deve possuir letra(s) minúscula(s)"
+    )
   }
 
   if (grandes == 0) {
-    mensa.push("Erro... senha deve possuir letra(s) maiúscula(s)")
+    mensa.push(
+      "Erro... senha deve possuir letra(s) maiúscula(s)"
+    )
   }
 
   if (numeros == 0) {
-    mensa.push("Erro... senha deve possuir número(s)")
+    mensa.push(
+      "Erro... senha deve possuir número(s)"
+    )
   }
 
   if (simbolos == 0) {
-    mensa.push("Erro... senha deve possuir símbolo(s)")
+    mensa.push(
+      "Erro... senha deve possuir símbolo(s)"
+    )
   }
 
   return mensa
 }
 
+// GET /usuarios
 router.get("/", async (req, res) => {
   try {
-    const usuarios = await prisma.usuario.findMany()
+    const usuarios = await prisma.usuario.findMany({
+      select: {
+        IdUsuario: true,
+        Nome: true,
+        Telefone: true,
+        Email: true,
+        CPF: true,
+        Data_nasc: true
+      }
+    })
 
     res.status(200).json(usuarios)
+
   } catch (error) {
-    res.status(400).json(error)
+    console.error(error)
+
+    res.status(400).json({
+      erro: "Erro ao buscar usuários"
+    })
   }
 })
 
+// POST /usuarios
 router.post("/", async (req, res) => {
   const valida = usuarioSchema.safeParse(req.body)
 
   if (!valida.success) {
-    res.status(400).json({ erro: valida.error })
+    res.status(400).json({
+      erro: valida.error
+    })
+
     return
   }
 
+  // Verifica se o e-mail já está cadastrado
   const verificaUsuario = await prisma.usuario.findUnique({
     where: {
       Email: valida.data.Email
@@ -99,21 +126,42 @@ router.post("/", async (req, res) => {
     res.status(400).json({
       erro: "E-mail já cadastrado"
     })
+
     return
   }
 
+  // Verifica se o CPF já está cadastrado
+  const verificaCPF = await prisma.usuario.findFirst({
+    where: {
+      CPF: valida.data.CPF
+    }
+  })
+
+  if (verificaCPF) {
+    res.status(400).json({
+      erro: "CPF já cadastrado"
+    })
+
+    return
+  }
+
+  // Valida a senha
   const erros = validaSenha(valida.data.Senha)
 
   if (erros.length > 0) {
     res.status(400).json({
       erro: erros.join("; ")
     })
+
     return
   }
 
+  // Criptografa a senha
   const salt = bcrypt.genSaltSync(12)
-
-  const hash = bcrypt.hashSync(valida.data.Senha, salt)
+  const hash = bcrypt.hashSync(
+    valida.data.Senha,
+    salt
+  )
 
   const {
     Nome,
@@ -124,6 +172,7 @@ router.post("/", async (req, res) => {
   } = valida.data
 
   try {
+
     const usuario = await prisma.usuario.create({
       data: {
         Nome,
@@ -132,31 +181,59 @@ router.post("/", async (req, res) => {
         CPF,
         Data_nasc,
         Senha: hash
+      },
+
+      select: {
+        IdUsuario: true,
+        Nome: true,
+        Telefone: true,
+        Email: true,
+        CPF: true,
+        Data_nasc: true
       }
     })
 
-    res.status(201).json(usuario)
+    // Retorna os dados do usuário sem a senha
+    res.status(201).json({
+      usuario
+    })
+
   } catch (error) {
+    console.error(error)
+
     res.status(400).json({
-      erro: error
+      erro: "Erro ao cadastrar usuário"
     })
   }
 })
 
+// GET /usuarios/:id
 router.get("/:id", async (req, res) => {
+
   const id = Number(req.params.id)
 
   if (isNaN(id)) {
     res.status(400).json({
       erro: "ID do usuário inválido"
     })
+
     return
   }
 
   try {
+
     const usuario = await prisma.usuario.findUnique({
       where: {
         IdUsuario: id
+      },
+
+      select: {
+        IdUsuario: true,
+        Nome: true,
+        Telefone: true,
+        Email: true,
+        CPF: true,
+        Data_nasc: true
       }
     })
 
@@ -164,12 +241,18 @@ router.get("/:id", async (req, res) => {
       res.status(404).json({
         erro: "Usuário não encontrado"
       })
+
       return
     }
 
     res.status(200).json(usuario)
+
   } catch (error) {
-    res.status(400).json(error)
+    console.error(error)
+
+    res.status(400).json({
+      erro: "Erro ao buscar usuário"
+    })
   }
 })
 
