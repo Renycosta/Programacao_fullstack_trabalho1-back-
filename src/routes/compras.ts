@@ -29,6 +29,59 @@ router.get("/", async (req, res) => {
   }
 })
 
+router.get("/usuario/:id", async (req, res) => {
+    const id = Number(req.params.id)
+
+    if (isNaN(id)) {
+        res.status(400).json({
+            erro: "ID do usuário inválido"
+        })
+        return
+    }
+
+    try {
+        const usuario = await prisma.usuario.findUnique({
+            where: {
+                IdUsuario: id
+            }
+        })
+
+        if (!usuario) {
+            res.status(404).json({
+                erro: "Usuário não encontrado"
+            })
+            return
+        }
+
+        const compras = await prisma.compra.findMany({
+            where: {
+                Usuario_Id: id
+            },
+            include: {
+                Usuario: {
+                    select: {
+                        IdUsuario: true,
+                        Nome: true,
+                        Email: true
+                    }
+                },
+                PdC: true
+            },
+            orderBy: {
+                Data_venda: "desc"
+            }
+        })
+
+        res.status(200).json(compras)
+    } catch (error) {
+        console.error("Erro ao buscar compras do usuário:", error)
+
+        res.status(500).json({
+            erro: error
+        })
+    }
+})
+
 router.get("/:id", async (req, res) => {
   const id = Number(req.params.id)
 

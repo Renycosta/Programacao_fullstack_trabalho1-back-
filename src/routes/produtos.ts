@@ -59,6 +59,84 @@ router.get("/", async (req, res) => {
   }
 })
 
+router.get("/pesquisa/:termo", async (req, res) => {
+  const { termo } = req.params
+  const termoNumero = Number(termo)
+  if (isNaN(termoNumero)) {
+    try {
+      const produtos = await prisma.produto.findMany({
+        include: {
+          Categoria: true,
+          Usuario: {
+            select: {
+              IdUsuario: true,
+              Nome: true,
+              Email: true
+            }
+          }
+        },
+        where: {
+          OR: [
+            {
+              Nome: {
+                contains: termo,
+                mode: "insensitive"
+              }
+            },
+            {
+              Autor: {
+                contains: termo,
+                mode: "insensitive"
+              }
+            },
+          ]
+        }
+      })
+      res.status(200).json(produtos)
+    } catch (error) {
+      res.status(500).json({
+        erro: error
+      })
+    }
+  }
+  else if (termoNumero <= 3000) {
+    try {
+      const produtos = await prisma.produto.findMany({
+        include: {
+          Categoria: true
+        },
+        where: {
+          Ano_public: termoNumero
+        }
+      })
+      res.status(200).json(produtos)
+    } catch (error) {
+      res.status(500).json({
+        erro: error
+      })
+    }
+  }
+  else {
+    try {
+      const produtos = await prisma.produto.findMany({
+        include: {
+          Categoria: true
+        },
+        where: {
+          Valor: {
+            lte: termoNumero
+          }
+        }
+      })
+      res.status(200).json(produtos)
+    } catch (error) {
+      res.status(500).json({
+        erro: error
+      })
+    }
+  }
+})
+
 router.get("/:id", async (req, res) => {
   const { id } = req.params
   try {
@@ -244,87 +322,5 @@ router.put("/:id", async (req, res) => {
   }
 })
 
-router.get("/pesquisa/:termo", async (req, res) => {
-  const { termo } = req.params
-  const termoNumero = Number(termo)
-  if (isNaN(termoNumero)) {
-    try {
-      const produtos = await prisma.produto.findMany({
-        include: {
-          Categoria: true,
-          Usuario: {
-            select: {
-              IdUsuario: true,
-              Nome: true,
-              Email: true
-            }
-          }
-        },
-        where: {
-          OR: [
-            {
-              Nome: {
-                contains: termo
-              }
-            },
-            {
-              Autor: {
-                contains: termo
-              }
-            },
-            {
-              Categoria: {
-                Descricao: {
-                  contains: termo
-                }
-              }
-            }
-          ]
-        }
-      })
-      res.status(200).json(produtos)
-    } catch (error) {
-      res.status(500).json({
-        erro: error
-      })
-    }
-  }
-  else if (termoNumero <= 3000) {
-    try {
-      const produtos = await prisma.produto.findMany({
-        include: {
-          Categoria: true
-        },
-        where: {
-          Ano_public: termoNumero
-        }
-      })
-      res.status(200).json(produtos)
-    } catch (error) {
-      res.status(500).json({
-        erro: error
-      })
-    }
-  }
-  else {
-    try {
-      const produtos = await prisma.produto.findMany({
-        include: {
-          Categoria: true
-        },
-        where: {
-          Valor: {
-            lte: termoNumero
-          }
-        }
-      })
-      res.status(200).json(produtos)
-    } catch (error) {
-      res.status(500).json({
-        erro: error
-      })
-    }
-  }
-})
 
 export default router

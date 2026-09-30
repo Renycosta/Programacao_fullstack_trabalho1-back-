@@ -256,4 +256,47 @@ router.get("/:id", async (req, res) => {
   }
 })
 
+// DELETE /usuarios/:id
+router.delete("/:id", async (req, res) => {
+  const id = Number(req.params.id)
+
+  if (isNaN(id)) {
+    res.status(400).json({
+      erro: "ID do usuário inválido"
+    })
+    return
+  }
+
+  try {
+    const usuario = await prisma.usuario.findUnique({
+      where: {
+        IdUsuario: id
+      }
+    })
+
+    if (!usuario) {
+      res.status(404).json({
+        erro: "Usuário não encontrado"
+      })
+      return
+    }
+
+    await prisma.usuario.delete({
+      where: {
+        IdUsuario: id
+      }
+    })
+
+    res.status(200).json({
+      mensagem: "Usuário excluído com sucesso"
+    })
+  } catch (error) {
+    console.error(error)
+
+    res.status(400).json({
+      erro: error
+    })
+  }
+})
+
 export default router

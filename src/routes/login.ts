@@ -6,60 +6,85 @@ import bcrypt from "bcrypt"
 const router = Router()
 
 router.post("/", async (req, res) => {
-  const { Email, Senha } = req.body
 
-  const mensaPadrao = "Login ou senha incorretos"
+    const { Email, Senha } = req.body
 
-  if (!Email || !Senha) {
-    res.status(400).json({
-      erro: mensaPadrao
-    })
-    return
-  }
+    console.log("Email recebido:", Email)
+    console.log("Senha recebida:", Senha)
 
-  try {
-    const usuario = await prisma.usuario.findUnique({
-      where: {
-        Email
-      }
-    })
+    const mensaPadrao = "Login ou senha incorretos"
 
-    if (usuario == null) {
-      res.status(400).json({
-        erro: mensaPadrao
-      })
-      return
+    if (!Email || !Senha) {
+        console.log("Email ou senha não foram enviados")
+
+        res.status(400).json({
+            erro: mensaPadrao
+        })
+        return
     }
 
-    if (bcrypt.compareSync(Senha, usuario.Senha)) {
+    try {
 
-      const token = jwt.sign(
-        {
-          usuarioLogadoId: usuario.IdUsuario,
-          usuarioLogadoNome: usuario.Nome
-        },
-        process.env.JWT_KEY as string,
-        {
-          expiresIn: "1h"
+        const usuario = await prisma.usuario.findUnique({
+            where: {
+                Email
+            }
+        })
+
+        console.log("Usuário encontrado:", usuario)
+
+        if (usuario == null) {
+            console.log("USUÁRIO NÃO ENCONTRADO")
+            res.status(400).json({
+                erro: mensaPadrao
+            })
+            return
         }
-      )
 
-      res.status(200).json({
-        IdUsuario: usuario.IdUsuario,
-        Nome: usuario.Nome,
-        Email: usuario.Email,
-        token
-      })
+        const senhaCorreta = bcrypt.compareSync(
+            Senha,
+            usuario.Senha
+        )
 
-    } else {
-      res.status(400).json({
-        erro: mensaPadrao
-      })
+        console.log("Senha correta:", senhaCorreta)
+
+        if (senhaCorreta) {
+
+            const token = jwt.sign(
+                {
+                    usuarioLogadoId: usuario.IdUsuario,
+                    usuarioLogadoNome: usuario.Nome
+                },
+                process.env.JWT_KEY as string,
+                {
+                    expiresIn: "1h"
+                }
+            )
+
+            res.status(200).json({
+                IdUsuario: usuario.IdUsuario,
+                Nome: usuario.Nome,
+                Email: usuario.Email,
+                token
+            })
+
+        } else {
+
+            console.log("SENHA INCORRETA")
+
+            res.status(400).json({
+                erro: mensaPadrao
+            })
+        }
+
+    } catch (error) {
+
+        console.error("ERRO:", error)
+
+        res.status(400).json({
+            erro: mensaPadrao
+        })
     }
-
-  } catch (error) {
-    res.status(400).json(error)
-  }
 })
 
 export default router
