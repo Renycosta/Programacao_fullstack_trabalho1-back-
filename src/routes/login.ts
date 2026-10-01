@@ -8,24 +8,30 @@ const router = Router()
 router.post("/login", async (req, res) => {
   const { Email, Senha } = req.body
 
-  console.log("Email recebido:", Email)
-  console.log("Senha recebida:", Senha)
+  console.log("LOGIN RECEBIDO:")
+  console.log("Email:", Email)
+  console.log("Senha:", Senha)
 
   try {
-    // Primeiro procura um usuário
+    // =========================
+    // LOGIN DE USUÁRIO
+    // =========================
+
     const usuario = await prisma.usuario.findUnique({
       where: {
         Email
       }
     })
 
-    if (usuario) {
-      console.log("Usuário encontrado:", usuario)
+    console.log("USUÁRIO ENCONTRADO:", usuario)
 
+    if (usuario) {
       const senhaCorreta = await bcrypt.compare(
         Senha,
         usuario.Senha
       )
+
+      console.log("SENHA DO USUÁRIO CORRETA:", senhaCorreta)
 
       if (!senhaCorreta) {
         res.status(401).json({
@@ -57,19 +63,31 @@ router.post("/login", async (req, res) => {
       return
     }
 
-    // Se não encontrou usuário, procura administrador
+    // =========================
+    // LOGIN DE ADMINISTRADOR
+    // =========================
+
+    console.log(
+      "Usuário não encontrado. Procurando administrador..."
+    )
+
     const admin = await prisma.admin.findFirst({
       where: {
         Email
       }
     })
 
-    if (admin) {
-      console.log("Administrador encontrado:", admin)
+    console.log("ADMIN ENCONTRADO:", admin)
 
+    if (admin) {
       const senhaCorreta = await bcrypt.compare(
         Senha,
         admin.Senha
+      )
+
+      console.log(
+        "SENHA DO ADMINISTRADOR CORRETA:",
+        senhaCorreta
       )
 
       if (!senhaCorreta) {
@@ -102,6 +120,10 @@ router.post("/login", async (req, res) => {
       return
     }
 
+    // =========================
+    // NENHUMA CONTA ENCONTRADA
+    // =========================
+
     console.log("USUÁRIO/ADMIN NÃO ENCONTRADO")
 
     res.status(401).json({
@@ -109,7 +131,7 @@ router.post("/login", async (req, res) => {
     })
 
   } catch (error) {
-    console.error("ERRO:", error)
+    console.error("ERRO NO LOGIN:", error)
 
     res.status(500).json({
       erro: "Erro interno do servidor"
