@@ -208,6 +208,7 @@ router.get("/:id", async (req, res) => {
     res.status(400).json({
       erro: "ID do usuário inválido"
     })
+
     return
   }
 
@@ -232,6 +233,7 @@ router.get("/:id", async (req, res) => {
       res.status(404).json({
         erro: "Usuário não encontrado"
       })
+
       return
     }
 
@@ -246,66 +248,67 @@ router.get("/:id", async (req, res) => {
 })
 
 router.post("/login", async (req, res) => {
-  const { Email, Senha } = req.body
+    const { Email, Senha } = req.body
 
-  if (!Email || !Senha) {
-    res.status(400).json({
-      erro: "Informe o e-mail e a senha"
-    })
-    return
-  }
+    try {
+        console.log("LOGIN RECEBIDO:")
+        console.log("Email:", req.body.Email)
+        console.log("Senha:", req.body.Senha)
+        console.log("EMAIL RECEBIDO:", Email)
 
-  try {
-    const usuario = await prisma.usuario.findUnique({
-      where: {
-        Email
-      }
-    })
+        const usuario = await prisma.usuario.findUnique({
+            where: {
+                Email: req.body.Email
+            }
+        })
 
-    if (!usuario) {
-      res.status(400).json({
-        erro: "Login ou senha incorretos"
-      })
-      return
+        console.log("USUÁRIO ENCONTRADO:", usuario)
+        console.log("USUARIO:", usuario)
+
+        if (!usuario) {
+            return res.status(400).json({
+                erro: "Login ou senha incorretos"
+            })
+        }
+
+        const senhaCorreta = await bcrypt.compare(
+            Senha,
+            usuario.Senha
+        )
+
+        console.log("SENHA CORRETA:", senhaCorreta)
+
+        if (!senhaCorreta) {
+            return res.status(400).json({
+                erro: "Login ou senha incorretos"
+            })
+        }
+
+        const token = jwt.sign(
+            {
+                usuarioLogadoId: usuario.IdUsuario,
+                usuarioLogadoNome: usuario.Nome
+            },
+            process.env.JWT_KEY as string,
+            {
+                expiresIn: "1h"
+            }
+        )
+
+        return res.status(200).json({
+            IdUsuario: usuario.IdUsuario,
+            Nome: usuario.Nome,
+            Email: usuario.Email,
+            token
+        })
+
+    } catch (error) {
+        console.error(error)
+
+        return res.status(500).json({
+            erro: "Erro ao realizar login"
+        })
     }
-
-    const senhaCorreta = await bcrypt.compare(
-      Senha,
-      usuario.Senha
-    )
-
-    if (!senhaCorreta) {
-      res.status(400).json({
-        erro: "Login ou senha incorretos"
-      })
-      return
-    }
-
-    const token = jwt.sign(
-      {
-        usuarioLogadoId: usuario.IdUsuario,
-        usuarioLogadoNome: usuario.Nome
-      },
-      process.env.JWT_SECRET as string,
-      {
-        expiresIn: "1d"
-      }
-    )
-
-    res.status(200).json({
-      IdUsuario: usuario.IdUsuario,
-      Nome: usuario.Nome,
-      Email: usuario.Email,
-      token
-    })
-
-  } catch (error) {
-    console.error("ERRO NO LOGIN:", error)
-
-    res.status(500).json({
-      erro: "Erro ao realizar login"
-    })
-  }
 })
 
 router.delete("/:id", async (req, res) => {
