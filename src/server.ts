@@ -30,7 +30,6 @@ app.use("/produtos_das_compras", routesProdutos_das_compras)
 app.use("/produtos", routesProdutos)
 app.use("/usuarios", routesUsuarios)
 
-// Documentação Swagger
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument))
 
 app.get('/', (req, res) => {

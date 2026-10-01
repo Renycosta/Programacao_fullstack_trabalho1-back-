@@ -9,7 +9,6 @@ const produtosDaCompraSchema = z.object({
   Compra_Id: z.number().int().positive()
 })
 
-// GET - listar todos os produtos das compras
 router.get("/", async (req, res) => {
   try {
     const produtosDaCompra = await prisma.produtos_da_compra.findMany({
@@ -35,7 +34,6 @@ router.get("/", async (req, res) => {
   }
 })
 
-// GET - buscar produto da compra pelos IDs
 router.get("/:Produto_Id/:Compra_Id", async (req, res) => {
   const Produto_Id = Number(req.params.Produto_Id)
   const Compra_Id = Number(req.params.Compra_Id)
@@ -76,14 +74,12 @@ router.get("/:Produto_Id/:Compra_Id", async (req, res) => {
       })
       return
     }
-
     res.status(200).json(produtoDaCompra)
   } catch (error) {
     res.status(400).json({ erro: error })
   }
 })
 
-// POST - adicionar produto a uma compra
 router.post("/", async (req, res) => {
   const valida = produtosDaCompraSchema.safeParse(req.body)
 
@@ -98,7 +94,6 @@ router.post("/", async (req, res) => {
   } = valida.data
 
   try {
-    // Verifica se o produto existe
     const produto = await prisma.produto.findUnique({
       where: {
         IdProduto: Produto_Id
@@ -112,7 +107,6 @@ router.post("/", async (req, res) => {
       return
     }
 
-    // Verifica se a compra existe
     const compra = await prisma.compra.findUnique({
       where: {
         IdCompra: Compra_Id
@@ -126,7 +120,6 @@ router.post("/", async (req, res) => {
       return
     }
 
-    // Verifica se o produto já está nessa compra
     const produtoExistente =
       await prisma.produtos_da_compra.findUnique({
         where: {
@@ -172,7 +165,6 @@ router.post("/", async (req, res) => {
   }
 })
 
-// DELETE - remover produto de uma compra
 router.delete("/:Produto_Id/:Compra_Id", async (req, res) => {
   const Produto_Id = Number(req.params.Produto_Id)
   const Compra_Id = Number(req.params.Compra_Id)
@@ -208,7 +200,6 @@ router.delete("/:Produto_Id/:Compra_Id", async (req, res) => {
         }
       }
     })
-
     res.status(200).json({
       mensagem: "Produto removido da compra com sucesso"
     })
@@ -217,7 +208,6 @@ router.delete("/:Produto_Id/:Compra_Id", async (req, res) => {
   }
 })
 
-// PUT - alterar o produto de uma compra
 router.put("/:Produto_Id/:Compra_Id", async (req, res) => {
   const Produto_Id = Number(req.params.Produto_Id)
   const Compra_Id = Number(req.params.Compra_Id)

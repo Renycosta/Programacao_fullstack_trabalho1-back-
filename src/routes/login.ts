@@ -6,7 +6,6 @@ import bcrypt from "bcrypt"
 const router = Router()
 
 router.post("/", async (req, res) => {
-
     const { Email, Senha } = req.body
 
     console.log("Email recebido:", Email)
@@ -16,7 +15,6 @@ router.post("/", async (req, res) => {
 
     if (!Email || !Senha) {
         console.log("Email ou senha não foram enviados")
-
         res.status(400).json({
             erro: mensaPadrao
         })
@@ -24,7 +22,6 @@ router.post("/", async (req, res) => {
     }
 
     try {
-
         const usuario = await prisma.usuario.findUnique({
             where: {
                 Email
@@ -49,7 +46,6 @@ router.post("/", async (req, res) => {
         console.log("Senha correta:", senhaCorreta)
 
         if (senhaCorreta) {
-
             const token = jwt.sign(
                 {
                     usuarioLogadoId: usuario.IdUsuario,
@@ -69,18 +65,14 @@ router.post("/", async (req, res) => {
             })
 
         } else {
-
             console.log("SENHA INCORRETA")
-
             res.status(400).json({
                 erro: mensaPadrao
             })
         }
 
     } catch (error) {
-
         console.error("ERRO:", error)
-
         res.status(400).json({
             erro: mensaPadrao
         })

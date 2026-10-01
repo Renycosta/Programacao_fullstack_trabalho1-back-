@@ -2,6 +2,7 @@ import { prisma } from "../../lib/prisma"
 import { Router } from "express"
 import bcrypt from "bcrypt"
 import { z } from "zod"
+import jwt from "jsonwebtoken"
 
 const router = Router()
 
@@ -78,7 +79,6 @@ function validaSenha(senha: string) {
   return mensa
 }
 
-// GET /usuarios
 router.get("/", async (req, res) => {
   try {
     const usuarios = await prisma.usuario.findMany({
@@ -103,7 +103,6 @@ router.get("/", async (req, res) => {
   }
 })
 
-// POST /usuarios
 router.post("/", async (req, res) => {
   const valida = usuarioSchema.safeParse(req.body)
 
@@ -115,7 +114,6 @@ router.post("/", async (req, res) => {
     return
   }
 
-  // Verifica se o e-mail já está cadastrado
   const verificaUsuario = await prisma.usuario.findUnique({
     where: {
       Email: valida.data.Email
@@ -130,7 +128,6 @@ router.post("/", async (req, res) => {
     return
   }
 
-  // Verifica se o CPF já está cadastrado
   const verificaCPF = await prisma.usuario.findFirst({
     where: {
       CPF: valida.data.CPF
@@ -145,7 +142,6 @@ router.post("/", async (req, res) => {
     return
   }
 
-  // Valida a senha
   const erros = validaSenha(valida.data.Senha)
 
   if (erros.length > 0) {
@@ -156,7 +152,6 @@ router.post("/", async (req, res) => {
     return
   }
 
-  // Criptografa a senha
   const salt = bcrypt.genSaltSync(12)
   const hash = bcrypt.hashSync(
     valida.data.Senha,
@@ -193,7 +188,6 @@ router.post("/", async (req, res) => {
       }
     })
 
-    // Retorna os dados do usuário sem a senha
     res.status(201).json({
       usuario
     })
@@ -207,16 +201,13 @@ router.post("/", async (req, res) => {
   }
 })
 
-// GET /usuarios/:id
 router.get("/:id", async (req, res) => {
-
   const id = Number(req.params.id)
 
   if (isNaN(id)) {
     res.status(400).json({
       erro: "ID do usuário inválido"
     })
-
     return
   }
 
@@ -241,7 +232,6 @@ router.get("/:id", async (req, res) => {
       res.status(404).json({
         erro: "Usuário não encontrado"
       })
-
       return
     }
 
@@ -249,14 +239,75 @@ router.get("/:id", async (req, res) => {
 
   } catch (error) {
     console.error(error)
-
     res.status(400).json({
       erro: "Erro ao buscar usuário"
     })
   }
 })
 
-// DELETE /usuarios/:id
+router.post("/login", async (req, res) => {
+  const { Email, Senha } = req.body
+
+  if (!Email || !Senha) {
+    res.status(400).json({
+      erro: "Informe o e-mail e a senha"
+    })
+    return
+  }
+
+  try {
+    const usuario = await prisma.usuario.findUnique({
+      where: {
+        Email
+      }
+    })
+
+    if (!usuario) {
+      res.status(400).json({
+        erro: "Login ou senha incorretos"
+      })
+      return
+    }
+
+    const senhaCorreta = await bcrypt.compare(
+      Senha,
+      usuario.Senha
+    )
+
+    if (!senhaCorreta) {
+      res.status(400).json({
+        erro: "Login ou senha incorretos"
+      })
+      return
+    }
+
+    const token = jwt.sign(
+      {
+        usuarioLogadoId: usuario.IdUsuario,
+        usuarioLogadoNome: usuario.Nome
+      },
+      process.env.JWT_SECRET as string,
+      {
+        expiresIn: "1d"
+      }
+    )
+
+    res.status(200).json({
+      IdUsuario: usuario.IdUsuario,
+      Nome: usuario.Nome,
+      Email: usuario.Email,
+      token
+    })
+
+  } catch (error) {
+    console.error("ERRO NO LOGIN:", error)
+
+    res.status(500).json({
+      erro: "Erro ao realizar login"
+    })
+  }
+})
+
 router.delete("/:id", async (req, res) => {
   const id = Number(req.params.id)
 
@@ -286,13 +337,11 @@ router.delete("/:id", async (req, res) => {
         IdUsuario: id
       }
     })
-
     res.status(200).json({
       mensagem: "Usuário excluído com sucesso"
     })
   } catch (error) {
     console.error(error)
-
     res.status(400).json({
       erro: error
     })
