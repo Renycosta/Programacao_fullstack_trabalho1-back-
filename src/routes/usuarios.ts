@@ -248,62 +248,134 @@ router.get("/:id", async (req, res) => {
 })
 
 router.post("/login", async (req, res) => {
+
     const { Email, Senha } = req.body
 
     try {
+
         console.log("LOGIN RECEBIDO:")
-        console.log("Email:", req.body.Email)
-        console.log("Senha:", req.body.Senha)
-        console.log("EMAIL RECEBIDO:", Email)
+        console.log("Email:", Email)
+        console.log("Senha:", Senha)
+
+        // =====================================
+        // PROCURA PRIMEIRO ENTRE OS USUÁRIOS
+        // =====================================
 
         const usuario = await prisma.usuario.findUnique({
             where: {
-                Email: req.body.Email
+                Email
             }
         })
 
         console.log("USUÁRIO ENCONTRADO:", usuario)
-        console.log("USUARIO:", usuario)
 
-        if (!usuario) {
-            return res.status(400).json({
-                erro: "Login ou senha incorretos"
-            })
-        }
+        if (usuario) {
 
-        const senhaCorreta = await bcrypt.compare(
-            Senha,
-            usuario.Senha
-        )
+            const senhaCorreta = await bcrypt.compare(
+                Senha,
+                usuario.Senha
+            )
 
-        console.log("SENHA CORRETA:", senhaCorreta)
+            console.log(
+                "SENHA DO USUÁRIO CORRETA:",
+                senhaCorreta
+            )
 
-        if (!senhaCorreta) {
-            return res.status(400).json({
-                erro: "Login ou senha incorretos"
-            })
-        }
-
-        const token = jwt.sign(
-            {
-                usuarioLogadoId: usuario.IdUsuario,
-                usuarioLogadoNome: usuario.Nome
-            },
-            process.env.JWT_KEY as string,
-            {
-                expiresIn: "1h"
+            if (!senhaCorreta) {
+                return res.status(400).json({
+                    erro: "Login ou senha incorretos"
+                })
             }
+
+            const token = jwt.sign(
+                {
+                    usuarioLogadoId: usuario.IdUsuario,
+                    usuarioLogadoNome: usuario.Nome,
+                    tipo: "usuario"
+                },
+                process.env.JWT_KEY as string,
+                {
+                    expiresIn: "1h"
+                }
+            )
+
+            return res.status(200).json({
+                IdUsuario: usuario.IdUsuario,
+                Nome: usuario.Nome,
+                Email: usuario.Email,
+                tipo: "usuario",
+                token
+            })
+        }
+
+        // =====================================
+        // SE NÃO FOR USUÁRIO, PROCURA ADMIN
+        // =====================================
+
+        console.log(
+            "Usuário não encontrado. Procurando administrador..."
         )
 
-        return res.status(200).json({
-            IdUsuario: usuario.IdUsuario,
-            Nome: usuario.Nome,
-            Email: usuario.Email,
-            token
+        const admin = await prisma.admin.findFirst({
+            where: {
+                Email
+            }
+        })
+
+        console.log("ADMIN ENCONTRADO:", admin)
+
+        if (admin) {
+
+            const senhaCorreta = await bcrypt.compare(
+                Senha,
+                admin.Senha
+            )
+
+            console.log(
+                "SENHA DO ADMINISTRADOR CORRETA:",
+                senhaCorreta
+            )
+
+            if (!senhaCorreta) {
+                return res.status(400).json({
+                    erro: "Login ou senha incorretos"
+                })
+            }
+
+            const token = jwt.sign(
+                {
+                    adminLogadoId: admin.IdAdmin,
+                    adminLogadoNome: admin.Nome,
+                    tipo: "admin"
+                },
+                process.env.JWT_KEY as string,
+                {
+                    expiresIn: "1h"
+                }
+            )
+
+            return res.status(200).json({
+                IdAdmin: admin.IdAdmin,
+                Nome: admin.Nome,
+                Email: admin.Email,
+                tipo: "admin",
+                token
+            })
+        }
+
+        // =====================================
+        // NENHUMA CONTA ENCONTRADA
+        // =====================================
+
+        console.log("USUÁRIO/ADMIN NÃO ENCONTRADO")
+
+        return res.status(400).json({
+            erro: "Login ou senha incorretos"
         })
 
     } catch (error) {
-        console.error(error)
+
+        console.error("ERRO AO REALIZAR LOGIN:", error)
 
         return res.status(500).json({
             erro: "Erro ao realizar login"
