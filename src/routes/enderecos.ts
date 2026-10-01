@@ -121,6 +121,32 @@ router.post("/", async (req, res) => {
   }
 })
 
+router.get("/usuario/:id", async (req, res) => {
+  const id = Number(req.params.id)
+
+  if (isNaN(id)) {
+    res.status(400).json({
+      erro: "ID do usuário inválido"
+    })
+    return
+  }
+
+  try {
+    const enderecos = await prisma.endereco.findMany({
+      where: {
+        Usuario_Id: id
+      }
+    })
+
+    res.status(200).json(enderecos)
+
+  } catch (error) {
+    res.status(400).json({
+      erro: error
+    })
+  }
+})
+
 router.get("/:id", async (req, res) => {
   const id = Number(req.params.id)
   if (isNaN(id)) {
