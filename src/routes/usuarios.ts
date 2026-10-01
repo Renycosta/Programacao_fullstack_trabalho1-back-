@@ -330,7 +330,7 @@ router.delete("/:id", async (req, res) => {
 
     if (!usuario) {
       res.status(404).json({
-        erro: "Usuário não encontrado"
+        erro: "Usuário não encontrado a"
       })
       return
     }
