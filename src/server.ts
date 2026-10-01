@@ -13,6 +13,7 @@ import routesLoginAdmins from './routes/loginAdmins'
 import routesProdutos_das_compras from './routes/produtos_das_compras'
 import routesProdutos from './routes/produtos'
 import routesUsuarios from './routes/usuarios'
+import dashboardRouter from "./routes/dashboard"
 
 const app = express()
 const port = 3000
@@ -29,6 +30,7 @@ app.use("/admins/login", routesLoginAdmins)
 app.use("/produtos_das_compras", routesProdutos_das_compras)
 app.use("/produtos", routesProdutos)
 app.use("/usuarios", routesUsuarios)
+app.use("/dashboard", dashboardRouter)
 
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument))
 
