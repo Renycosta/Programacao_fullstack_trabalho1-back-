@@ -5,78 +5,116 @@ import bcrypt from "bcrypt"
 
 const router = Router()
 
-router.post("/", async (req, res) => {
-    const { Email, Senha } = req.body
+router.post("/login", async (req, res) => {
+  const { Email, Senha } = req.body
 
-    console.log("Email recebido:", Email)
-    console.log("Senha recebida:", Senha)
+  console.log("Email recebido:", Email)
+  console.log("Senha recebida:", Senha)
 
-    const mensaPadrao = "Login ou senha incorretos"
+  try {
+    // Primeiro procura um usuário
+    const usuario = await prisma.usuario.findUnique({
+      where: {
+        Email
+      }
+    })
 
-    if (!Email || !Senha) {
-        console.log("Email ou senha não foram enviados")
-        res.status(400).json({
-            erro: mensaPadrao
+    if (usuario) {
+      console.log("Usuário encontrado:", usuario)
+
+      const senhaCorreta = await bcrypt.compare(
+        Senha,
+        usuario.Senha
+      )
+
+      if (!senhaCorreta) {
+        res.status(401).json({
+          erro: "Login ou senha incorretos"
         })
         return
+      }
+
+      const token = jwt.sign(
+        {
+          usuarioLogadoId: usuario.IdUsuario,
+          usuarioLogadoNome: usuario.Nome,
+          tipo: "usuario"
+        },
+        process.env.JWT_KEY as string,
+        {
+          expiresIn: "1h"
+        }
+      )
+
+      res.status(200).json({
+        IdUsuario: usuario.IdUsuario,
+        Nome: usuario.Nome,
+        Email: usuario.Email,
+        tipo: "usuario",
+        token
+      })
+
+      return
     }
 
-    try {
-        const usuario = await prisma.usuario.findUnique({
-            where: {
-                Email
-            }
+    // Se não encontrou usuário, procura administrador
+    const admin = await prisma.admin.findFirst({
+      where: {
+        Email
+      }
+    })
+
+    if (admin) {
+      console.log("Administrador encontrado:", admin)
+
+      const senhaCorreta = await bcrypt.compare(
+        Senha,
+        admin.Senha
+      )
+
+      if (!senhaCorreta) {
+        res.status(401).json({
+          erro: "Login ou senha incorretos"
         })
+        return
+      }
 
-        console.log("Usuário encontrado:", usuario)
-
-        if (usuario == null) {
-            console.log("USUÁRIO NÃO ENCONTRADO")
-            res.status(400).json({
-                erro: mensaPadrao
-            })
-            return
+      const token = jwt.sign(
+        {
+          adminLogadoId: admin.IdAdmin,
+          adminLogadoNome: admin.Nome,
+          tipo: "admin"
+        },
+        process.env.JWT_KEY as string,
+        {
+          expiresIn: "1h"
         }
+      )
 
-        const senhaCorreta = bcrypt.compareSync(
-            Senha,
-            usuario.Senha
-        )
+      res.status(200).json({
+        IdAdmin: admin.IdAdmin,
+        Nome: admin.Nome,
+        Email: admin.Email,
+        tipo: "admin",
+        token
+      })
 
-        console.log("Senha correta:", senhaCorreta)
-
-        if (senhaCorreta) {
-            const token = jwt.sign(
-                {
-                    usuarioLogadoId: usuario.IdUsuario,
-                    usuarioLogadoNome: usuario.Nome
-                },
-                process.env.JWT_KEY as string,
-                {
-                    expiresIn: "1h"
-                }
-            )
-
-            res.status(200).json({
-                IdUsuario: usuario.IdUsuario,
-                Nome: usuario.Nome,
-                Email: usuario.Email,
-                token
-            })
-
-        } else {
-            console.log("SENHA INCORRETA")
-            res.status(400).json({
-                erro: mensaPadrao
-            })
-        }
-
-    } catch (error) {
-        console.error("ERRO:", error)
-        res.status(400).json({
-            erro: mensaPadrao
-        })
+      return
     }
+
+    console.log("USUÁRIO/ADMIN NÃO ENCONTRADO")
+
+    res.status(401).json({
+      erro: "Login ou senha incorretos"
+    })
+
+  } catch (error) {
+    console.error("ERRO:", error)
+
+    res.status(500).json({
+      erro: "Erro interno do servidor"
+    })
+  }
 })
 
 export default router
